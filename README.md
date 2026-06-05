@@ -57,6 +57,6 @@ Then open `frontend/index.html` in your browser.
 1. Paste a Woolworths or Coles product URL and click **Add**
 2. Enter the email you want alerts sent to and click **Save**
 3. Click **Check Now** to test immediately
-4. Leave it running — checks automatically every Wednesday at 9am and emails you if anything is half price
+4. The script checks automatically every Wednesday at 9am and emails you if there's any products on your watchlist at half price! 
 
 Note: The Woolworths and Coles product APIs are undocumented but have been stable for several years. This was validated by open source projects like [aus_grocery_price_database](https://github.com/tjhowse/aus_grocery_price_database) which has been scraping both supermarkets into a timeseries database since 2023.
