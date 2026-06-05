@@ -40,9 +40,9 @@ EMAIL=you@gmail.com
 EMAIL_PASSWORD=your16charapppassword
 ```
 
-To get a Gmail App Password: myaccount.google.com → Security → 2-Step Verification → App Passwords → create one named `half-price-tracker`. This is not your regular Gmail password — it's a separate 16-character password Google generates specifically for apps.
+Gmail App Password: myaccount.google.com → Security → 2-Step Verification → App Passwords → create one named `half-price-tracker`. This is not your regular Gmail password, it's a separate 16-character password Google generates specifically for apps.
 
-⚠️ Never commit your `.env` file — it's already in `.gitignore`
+⚠️ `.env` file is never committed
 
 **5. Run the app**
 
