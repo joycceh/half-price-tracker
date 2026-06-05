@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Half Price Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-950 text-white min-h-screen font-sans">
+
+  <!-- Header -->
+  <header class="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl">🏷️</span>
+      <h1 class="text-lg font-bold tracking-tight">Half Price Tracker</h1>
+    </div>
+    <span class="text-xs text-gray-500">Woolworths & Coles</span>
+  </header>
+
+  <main class="max-w-2xl mx-auto px-4 py-8 space-y-6">
+
+    <!-- Add Product -->
+    <section class="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+      <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">Add Product</h2>
+      <div class="flex gap-3">
+        <input
+          id="urlInput"
+          type="text"
+          placeholder="Paste a Woolworths or Coles product URL..."
+          class="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-gray-500"
+        />
+        <button
+          onclick="addProduct()"
+          class="bg-white text-gray-950 font-semibold text-sm px-5 py-3 rounded-xl hover:bg-gray-200 transition"
+        >
+          Add
+        </button>
+      </div>
+      <p id="addError" class="text-red-400 text-xs mt-2 hidden"></p>
+    </section>
+
+    <!-- Alert Email -->
+    <section class="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+      <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">Alert Email</h2>
+      <div class="flex gap-3">
+        <input
+          id="emailInput"
+          type="email"
+          placeholder="Enter email to receive alerts..."
+          class="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-gray-500"
+        />
+        <button
+          onclick="saveEmail()"
+          class="bg-white text-gray-950 font-semibold text-sm px-5 py-3 rounded-xl hover:bg-gray-200 transition"
+        >
+          Save
+        </button>
+      </div>
+      <p id="emailStatus" class="text-green-400 text-xs mt-2 hidden"></p>
+    </section>
+
+    <!-- Manual Check -->
+    <section class="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-widest">Manual Check</h2>
+          <p class="text-xs text-gray-500 mt-1">Runs automatically every Wednesday at 9am</p>
+        </div>
+        <button
+          onclick="runCheck()"
+          id="checkBtn"
+          class="bg-orange-500 hover:bg-orange-400 text-white font-semibold text-sm px-5 py-3 rounded-xl transition"
+        >
+          Check Now
+        </button>
+      </div>
+      <p id="checkStatus" class="text-green-400 text-xs mt-3 hidden"></p>
+    </section>
+
+    <!-- Watchlist -->
+    <section class="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+      <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">Watchlist</h2>
+      <div id="watchlist" class="space-y-3">
+        <p class="text-gray-500 text-sm">Loading...</p>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    const API = "http://localhost:5001"
+
+    // ── Load watchlist ──────────────────────────────────────────────────────
+    async function loadProducts() {
+      try {
+        const res = await fetch(`${API}/products`)
+        const data = await res.json()
+        const list = document.getElementById("watchlist")
+        const products = data.products || []
+
+        // populate email field
+        if (data.alert_email) {
+          document.getElementById("emailInput").value = data.alert_email
+        }
+
+        if (products.length === 0) {
+          list.innerHTML = `<p class="text-gray-500 text-sm">No products yet — paste a URL above to get started.</p>`
+          return
+        }
+
+        list.innerHTML = products.map(p => {
+          const isWoolworths = p.url.includes("woolworths.com.au")
+          const store = isWoolworths ? "Woolworths" : "Coles"
+          const storeColor = isWoolworths
+            ? "bg-green-900 text-green-400"
+            : "bg-red-900 text-red-400"
+
+          return `
+            <div class="flex items-center justify-between bg-gray-800 rounded-xl px-4 py-3 gap-3">
+              <div class="flex items-center gap-3 min-w-0">
+                <span class="text-xs font-semibold px-2 py-1 rounded-lg ${storeColor} shrink-0">${store}</span>
+                <a href="${p.url}" target="_blank"
+                  class="text-sm text-gray-300 hover:text-white truncate">
+                  ${p.url}
+                </a>
+              </div>
+              <button
+                onclick="removeProduct('${p.url}')"
+                class="text-gray-600 hover:text-red-400 text-xs shrink-0 transition">
+                Remove
+              </button>
+            </div>
+          `
+        }).join("")
+      } catch (e) {
+        document.getElementById("watchlist").innerHTML =
+          `<p class="text-red-400 text-sm">Could not connect to API. Is api.py running?</p>`
+      }
+    }
+
+    // ── Add product ─────────────────────────────────────────────────────────
+    async function addProduct() {
+      const url = document.getElementById("urlInput").value.trim()
+      const error = document.getElementById("addError")
+      error.classList.add("hidden")
+
+      if (!url) return
+
+      const res = await fetch(`${API}/products`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url })
+      })
+      const data = await res.json()
+
+      if (data.error) {
+        error.textContent = data.error
+        error.classList.remove("hidden")
+        return
+      }
+
+      document.getElementById("urlInput").value = ""
+      loadProducts()
+    }
+
+    // ── Remove product ──────────────────────────────────────────────────────
+    async function removeProduct(url) {
+      await fetch(`${API}/products`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url })
+      })
+      loadProducts()
+    }
+
+    // ── Save alert email ────────────────────────────────────────────────────
+    async function saveEmail() {
+      const email = document.getElementById("emailInput").value.trim()
+      const status = document.getElementById("emailStatus")
+
+      const res = await fetch(`${API}/alert-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        status.textContent = "✅ Alert email saved!"
+        status.classList.remove("hidden")
+        setTimeout(() => status.classList.add("hidden"), 3000)
+      }
+    }
+
+    // ── Manual price check ──────────────────────────────────────────────────
+    async function runCheck() {
+      const btn = document.getElementById("checkBtn")
+      const status = document.getElementById("checkStatus")
+      btn.textContent = "Checking..."
+      btn.disabled = true
+
+      const res = await fetch(`${API}/check`, { method: "POST" })
+      const data = await res.json()
+
+      btn.textContent = "Check Now"
+      btn.disabled = false
+      status.textContent = "✅ " + data.message
+      status.classList.remove("hidden")
+      setTimeout(() => status.classList.add("hidden"), 4000)
+    }
+
+    // load on start
+    loadProducts()
+  </script>
+
+</body>
+</html>
