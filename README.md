@@ -31,7 +31,14 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-**4. Create a `.env` file in the project root**
+**4. Create your `products.json` file**
+
+Copy the example file:
+```bash
+cp products.example.json products.json
+```
+
+**5. Create a `.env` file in the project root**
 
 Create a file named `.env` and add the following:
 
